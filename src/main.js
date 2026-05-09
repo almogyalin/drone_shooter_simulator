@@ -180,9 +180,9 @@ if (isMobile) {
     if (deltaAlpha < -180) deltaAlpha += 360;
 
     // Yaw: turning phone left/right (alpha axis)
-    const yaw = -deltaAlpha * (Math.PI / 180);
+    const yaw = deltaAlpha * (Math.PI / 180);
     // Pitch: tilting phone up/down (beta axis)
-    const pitch = -deltaBeta * (Math.PI / 180);
+    const pitch = deltaBeta * (Math.PI / 180);
 
     camera.rotation.order = 'YXZ';
     camera.rotation.y = yaw;
