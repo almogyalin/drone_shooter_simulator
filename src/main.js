@@ -158,29 +158,35 @@ if (isMobile) {
   document.getElementById('mobile-ui').style.display = 'block';
 
   // DeviceOrientation for camera look
-  let orientAlpha = 0, orientBeta = 0, orientGamma = 0;
   let orientBase = null;
+  const euler = new THREE.Euler(0, 0, 0, 'YXZ');
 
   function handleOrientation(e) {
     if (game.state !== 'playing') return;
-    const alpha = e.alpha || 0; // compass
-    const beta = e.beta || 0;   // front-back tilt (-180 to 180)
-    const gamma = e.gamma || 0; // left-right tilt (-90 to 90)
+    const alpha = e.alpha || 0;
+    const beta = e.beta || 0;
+    const gamma = e.gamma || 0;
 
     if (!orientBase) {
       orientBase = { alpha, beta, gamma };
     }
 
-    // Relative rotation from starting orientation
-    let yaw = -(alpha - orientBase.alpha) * (Math.PI / 180);
-    let pitch = -(beta - orientBase.beta) * (Math.PI / 180);
+    // Delta from calibration point
+    let deltaAlpha = alpha - orientBase.alpha;
+    let deltaBeta = beta - orientBase.beta;
 
-    // Clamp pitch
-    pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, pitch));
+    // Normalize deltaAlpha to [-180, 180]
+    if (deltaAlpha > 180) deltaAlpha -= 360;
+    if (deltaAlpha < -180) deltaAlpha += 360;
+
+    // Yaw: turning phone left/right (alpha axis)
+    const yaw = -deltaAlpha * (Math.PI / 180);
+    // Pitch: tilting phone up/down (beta axis)
+    const pitch = -deltaBeta * (Math.PI / 180);
 
     camera.rotation.order = 'YXZ';
     camera.rotation.y = yaw;
-    camera.rotation.x = pitch;
+    camera.rotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, pitch));
   }
 
   function requestOrientationPermission() {
