@@ -1,0 +1,16 @@
+{
+  "name": "anti-drone",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "deploy": "vite build && npx gh-pages -d dist"
+  },
+  "dependencies": {
+    "three": "0.164.1"
+  },
+  "devDependencies": {
+    "vite": "5.4.2"
+  }
+}

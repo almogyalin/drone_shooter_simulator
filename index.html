@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Anti-Drone FPS</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { overflow: hidden; background: #000; font-family: monospace; }
+    canvas { display: block; }
+    #hud { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; color: #fff; }
+    #crosshair { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 24px; }
+    #weapon-info { position: absolute; bottom: 40px; right: 40px; text-align: right; font-size: 14px; color: #0f0; text-shadow: 0 0 4px #000, 0 0 8px #000; }
+    #wave-info { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); font-size: 18px; text-align: center; }
+    #score-info { position: absolute; top: 20px; right: 20px; font-size: 14px; }
+    #radar { position: absolute; bottom: 40px; left: 40px; width: 120px; height: 120px; border-radius: 50%; border: 1px solid rgba(0,255,0,0.5); background: rgba(0,0,0,0.5); }
+    #message { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 24px; text-align: center; pointer-events: auto; display: none; }
+    #message h1 { font-size: 36px; margin-bottom: 10px; }
+    #message p { margin: 5px 0; }
+    #message .subtitle { color: #aaa; font-size: 14px; }
+    #hit-marker { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 20px; color: #f00; opacity: 0; transition: opacity 0.1s; }
+    #scope-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; pointer-events: none; }
+    #scope-overlay .vignette { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 50%; box-shadow: inset 0 0 80px 60px #000, 0 0 0 9999px rgba(0,0,0,0.85); }
+    #scope-overlay .reticle { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 300px; height: 300px; }
+    #scope-overlay .reticle::before, #scope-overlay .reticle::after { content: ''; position: absolute; background: rgba(0,0,0,0.6); }
+    #scope-overlay .reticle::before { top: 50%; left: 0; width: 100%; height: 1px; }
+    #scope-overlay .reticle::after { left: 50%; top: 0; height: 100%; width: 1px; }
+  </style>
+</head>
+<body>
+  <div id="hud">
+    <div id="crosshair">+</div>
+    <div id="weapon-info"></div>
+    <div id="wave-info"></div>
+    <div id="score-info"></div>
+    <canvas id="radar"></canvas>
+    <div id="hit-marker">✕</div>
+    <div id="scope-overlay"><div class="vignette"></div><div class="reticle"></div></div>
+    <div id="message"></div>
+  </div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
