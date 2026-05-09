@@ -79,7 +79,12 @@ export class HUD {
 
   showMenu() {
     this.messageEl.style.display = 'block';
-    this.messageEl.innerHTML = `<h1>ANTI-DRONE</h1><p>Demonstrate the challenge of countering suicide drones<br>with conventional infantry weapons</p><br><p><b>Click to Start</b></p><br><p class="subtitle">Mouse: Aim | Left Click: Fire | Right Click: Scope | 1/2/3: Switch Weapon | R: Reload</p><p class="subtitle">Survive 15 waves of increasingly difficult drone attacks</p>`;
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || ('ontouchstart' in window && window.innerWidth < 1024);
+    if (isMobile) {
+      this.messageEl.innerHTML = `<h1>ANTI-DRONE</h1><p>Demonstrate the challenge of countering suicide drones<br>with conventional infantry weapons</p><br><p><b>Tap to Start</b></p><br><p class="subtitle">Move phone to aim | Tap to shoot | Use buttons to switch weapons</p><p class="subtitle">Survive 15 waves of increasingly difficult drone attacks</p>`;
+    } else {
+      this.messageEl.innerHTML = `<h1>ANTI-DRONE</h1><p>Demonstrate the challenge of countering suicide drones<br>with conventional infantry weapons</p><br><p><b>Click to Start</b></p><br><p class="subtitle">Mouse: Aim | Left Click: Fire | Right Click: Scope | 1/2/3: Switch Weapon | R: Reload</p><p class="subtitle">Survive 15 waves of increasingly difficult drone attacks</p>`;
+    }
   }
 
   showGameOver() {

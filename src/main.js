@@ -6,6 +6,9 @@ import { WaveManager } from './waves.js';
 import { HUD } from './hud.js';
 import { AudioManager } from './audio.js';
 
+// Detect mobile
+const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || ('ontouchstart' in window && window.innerWidth < 1024);
+
 // Scene
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x87CEEB);
@@ -59,11 +62,8 @@ addSandbags(-2, 0, 0);
 addSandbags(0, 2, Math.PI / 2);
 addSandbags(0, -2, Math.PI / 2);
 
-// Controls
-const controls = new PointerLockControls(camera, document.body);
-
 // Game state
-const game = { state: 'menu', score: 0, wave: 0, camera, scene, controls, won: false };
+const game = { state: 'menu', score: 0, wave: 0, camera, scene, controls: null, won: false };
 
 // Systems
 const audio = new AudioManager();
@@ -71,45 +71,6 @@ const weapons = new WeaponSystem(game, scene, camera, audio);
 const drones = new DroneManager(scene);
 const waves = new WaveManager(game, drones);
 const hud = new HUD(game, weapons, drones, waves);
-
-// Input
-document.addEventListener('click', () => {
-  if (game.state === 'menu') {
-    controls.lock();
-  } else if (game.state === 'gameover') {
-    restart();
-  }
-});
-
-controls.addEventListener('lock', () => {
-  if (game.state === 'menu') {
-    game.state = 'playing';
-    waves.startNextWave();
-    hud.announceWave(waves.getMessage());
-    hud.hideMessage();
-  }
-});
-
-controls.addEventListener('unlock', () => {
-  if (game.state === 'playing') controls.lock();
-});
-
-document.addEventListener('mousedown', (e) => {
-  if (game.state === 'playing' && e.button === 0) weapons.startFiring();
-  if (game.state === 'playing' && e.button === 2) zoomIn();
-});
-document.addEventListener('mouseup', (e) => {
-  if (e.button === 0) weapons.stopFiring();
-  if (e.button === 2) zoomOut();
-});
-document.addEventListener('contextmenu', (e) => e.preventDefault());
-document.addEventListener('keydown', (e) => {
-  if (game.state !== 'playing') return;
-  if (e.code === 'Digit1') weapons.switchWeapon(0);
-  if (e.code === 'Digit2') weapons.switchWeapon(1);
-  if (e.code === 'Digit3') weapons.switchWeapon(2);
-  if (e.code === 'KeyR') weapons.reload();
-});
 
 // Zoom/scope
 const DEFAULT_FOV = 75;
@@ -132,6 +93,13 @@ function zoomOut() {
   document.getElementById('scope-overlay').style.display = 'none';
 }
 
+function startGame() {
+  game.state = 'playing';
+  waves.startNextWave();
+  hud.announceWave(waves.getMessage());
+  hud.hideMessage();
+}
+
 function restart() {
   game.score = 0;
   game.wave = 0;
@@ -144,7 +112,118 @@ function restart() {
   waves.startNextWave();
   hud.announceWave(waves.getMessage());
   hud.hideMessage();
-  controls.lock();
+  if (!isMobile) controls.lock();
+}
+
+// === DESKTOP CONTROLS ===
+let controls;
+if (!isMobile) {
+  controls = new PointerLockControls(camera, document.body);
+  game.controls = controls;
+
+  document.addEventListener('click', () => {
+    if (game.state === 'menu') controls.lock();
+    else if (game.state === 'gameover') restart();
+  });
+
+  controls.addEventListener('lock', () => {
+    if (game.state === 'menu') startGame();
+  });
+
+  controls.addEventListener('unlock', () => {
+    if (game.state === 'playing') controls.lock();
+  });
+
+  document.addEventListener('mousedown', (e) => {
+    if (game.state === 'playing' && e.button === 0) weapons.startFiring();
+    if (game.state === 'playing' && e.button === 2) zoomIn();
+  });
+  document.addEventListener('mouseup', (e) => {
+    if (e.button === 0) weapons.stopFiring();
+    if (e.button === 2) zoomOut();
+  });
+  document.addEventListener('contextmenu', (e) => e.preventDefault());
+  document.addEventListener('keydown', (e) => {
+    if (game.state !== 'playing') return;
+    if (e.code === 'Digit1') weapons.switchWeapon(0);
+    if (e.code === 'Digit2') weapons.switchWeapon(1);
+    if (e.code === 'Digit3') weapons.switchWeapon(2);
+    if (e.code === 'KeyR') weapons.reload();
+  });
+}
+
+// === MOBILE CONTROLS ===
+if (isMobile) {
+  // Show mobile UI
+  document.getElementById('mobile-ui').style.display = 'block';
+
+  // DeviceOrientation for camera look
+  let orientAlpha = 0, orientBeta = 0, orientGamma = 0;
+  let orientBase = null;
+
+  function handleOrientation(e) {
+    if (game.state !== 'playing') return;
+    const alpha = e.alpha || 0; // compass
+    const beta = e.beta || 0;   // front-back tilt (-180 to 180)
+    const gamma = e.gamma || 0; // left-right tilt (-90 to 90)
+
+    if (!orientBase) {
+      orientBase = { alpha, beta, gamma };
+    }
+
+    // Relative rotation from starting orientation
+    let yaw = -(alpha - orientBase.alpha) * (Math.PI / 180);
+    let pitch = -(beta - orientBase.beta) * (Math.PI / 180);
+
+    // Clamp pitch
+    pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, pitch));
+
+    camera.rotation.order = 'YXZ';
+    camera.rotation.y = yaw;
+    camera.rotation.x = pitch;
+  }
+
+  function requestOrientationPermission() {
+    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+      // iOS 13+
+      DeviceOrientationEvent.requestPermission().then(response => {
+        if (response === 'granted') {
+          window.addEventListener('deviceorientation', handleOrientation);
+        }
+      });
+    } else {
+      window.addEventListener('deviceorientation', handleOrientation);
+    }
+  }
+
+  // Tap to start / shoot
+  document.addEventListener('touchstart', (e) => {
+    if (game.state === 'menu') {
+      requestOrientationPermission();
+      startGame();
+      return;
+    }
+    if (game.state === 'gameover') {
+      orientBase = null;
+      restart();
+      return;
+    }
+    // Don't shoot if tapping UI buttons
+    if (e.target.closest('#mobile-ui')) return;
+    if (game.state === 'playing') weapons.startFiring();
+  });
+
+  document.addEventListener('touchend', (e) => {
+    if (!e.target.closest('#mobile-ui')) weapons.stopFiring();
+  });
+
+  // Weapon switch buttons
+  document.getElementById('btn-w1').addEventListener('touchstart', (e) => { e.stopPropagation(); weapons.switchWeapon(0); });
+  document.getElementById('btn-w2').addEventListener('touchstart', (e) => { e.stopPropagation(); weapons.switchWeapon(1); });
+  document.getElementById('btn-w3').addEventListener('touchstart', (e) => { e.stopPropagation(); weapons.switchWeapon(2); });
+  document.getElementById('btn-reload').addEventListener('touchstart', (e) => { e.stopPropagation(); weapons.reload(); });
+  document.getElementById('btn-scope').addEventListener('touchstart', (e) => { e.stopPropagation(); zoomIn(); });
+  document.getElementById('btn-scope').addEventListener('touchend', (e) => { e.stopPropagation(); zoomOut(); });
 }
 
 // Game loop
@@ -174,7 +253,7 @@ function animate() {
       game.state = 'gameover';
       audio.playExplosion();
       hud.showGameOver();
-      controls.unlock();
+      if (!isMobile && controls) controls.unlock();
     }
 
     // Wave complete check
@@ -183,7 +262,7 @@ function animate() {
         game.state = 'gameover';
         game.won = true;
         hud.showGameOver();
-        controls.unlock();
+        if (!isMobile && controls) controls.unlock();
       } else {
         waves.betweenWaves = true;
         waves.waveTimer = 3;
